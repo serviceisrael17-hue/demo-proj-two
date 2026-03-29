@@ -1,0 +1,214 @@
+:root {
+  --primary-blue: #0078D7;
+  --primary-hover: #005A9E;
+  --header-bg: #EAEAEA;
+  --bg-color: #F0F4F8; /* Light blue/grey tint */
+  --text-main: #333333;
+  --border-color: #CCCCCC;
+  --grid-header: #DDDDDD;
+  --grid-row-alt: #F9F9F9;
+  --danger: #D32F2F;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header & Nav */
+.top-nav {
+  display: flex;
+  align-items: center;
+  background-color: var(--header-bg);
+  border-bottom: 2px solid var(--primary-blue);
+  padding: 8px 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-brand {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin-right: 24px;
+}
+
+.nav-links a {
+  margin-right: 16px;
+  text-decoration: none;
+  color: var(--text-main);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-links a:hover {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+.main-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+/* Common Forms */
+.form-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-top: 3px solid var(--primary-blue);
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+}
+
+.card-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: var(--primary-blue);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: flex-end;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #555;
+}
+
+.form-group input, .form-group select {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 1px var(--primary-blue);
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  background-color: var(--primary-blue);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+}
+
+.btn-danger:hover {
+  background-color: #B71C1C;
+}
+
+.btn-secondary {
+  background-color: #f1f1f1;
+  color: #333;
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: #e2e2e2;
+}
+
+/* Data Grid / Table */
+.data-grid-container {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.data-grid {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  table-layout: fixed;
+}
+
+.data-grid th, .data-grid td {
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.data-grid th {
+  background-color: var(--grid-header);
+  font-weight: 600;
+  color: #333;
+}
+
+.data-grid td input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.data-grid td input:focus {
+  outline: 1px solid var(--primary-blue);
+  background: white;
+}
+
+.data-grid tbody tr:nth-child(even) {
+  background-color: var(--grid-row-alt);
+}
+
+.data-grid tbody tr:hover {
+  background-color: #eef5fb;
+}
+
+.text-right {
+  text-align: right !important;
+}
