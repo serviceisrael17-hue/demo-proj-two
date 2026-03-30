@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 
-export default function SalesInvoice() {
+export default function PurchaseInvoice() {
   const productsList = useLiveQuery(() => db.products.toArray()) || [];
   const ledgersList = useLiveQuery(() => db.ledgers.toArray()) || [];
   
@@ -100,8 +100,8 @@ export default function SalesInvoice() {
       if(totals.total === 0) return alert('Cannot save empty invoice');
       
       const vId = await db.vouchers.add({
-        type: 'Sales',
-        voucher_no: invoiceHeader.invNo === 'AUTO' ? `INV-${Date.now()}` : invoiceHeader.invNo,
+        type: 'Purchase',
+        voucher_no: invoiceHeader.invNo === 'AUTO' ? `PUR-${Date.now()}` : invoiceHeader.invNo,
         date: invoiceHeader.invDate,
         party_name: invoiceHeader.partyName,
         grand_total: grandTotal
@@ -114,7 +114,7 @@ export default function SalesInvoice() {
         rate: i.rate,
         discount_pct: i.discount,
         discount_amt: i.discountAmt,
-        basic_amt: i.basicAmt, // this is taxable amt
+        basic_amt: i.basicAmt, // taxable amt
         cgst_amt: i.cgstAmt,
         sgst_amt: i.sgstAmt,
         igst_amt: i.igstAmt,
@@ -125,7 +125,7 @@ export default function SalesInvoice() {
         await db.voucherItems.bulkAdd(lineItemsToSave);
       }
       
-      alert(`Invoice saved successfully with ID: ${vId}`);
+      alert(`Purchase Invoice saved successfully with ID: ${vId}`);
       setItems([{ id: Date.now(), productId: '', qty: 1, discount: 0, igst: 0, Object: null }]);
       setInvoiceHeader({...invoiceHeader, invNo: 'AUTO'});
     } catch(err) {
@@ -135,21 +135,21 @@ export default function SalesInvoice() {
 
   return (
     <div>
-      <h2 className="card-title">Sales Invoice (Tax)</h2>
+      <h2 className="card-title">Purchase Invoice (Tax)</h2>
       
       <div className="form-card" style={{marginBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0}}>
         <div className="form-row">
           <div className="form-group" style={{flex: 2}}>
-            <label>Customer / Party Name</label>
+            <label>Supplier / Party Name</label>
             <select value={invoiceHeader.partyName} onChange={e => setInvoiceHeader({...invoiceHeader, partyName: e.target.value})} autoFocus>
               <option value="CASH A/C">CASH A/C</option>
-              {ledgersList.filter(l => l.group === 'Sundry Debtors' || l.group === 'Cash in Hand' || l.group === 'Bank Accounts').map(l => (
+              {ledgersList.filter(l => l.group === 'Sundry Creditors' || l.group === 'Cash in Hand' || l.group === 'Bank Accounts').map(l => (
                 <option key={l.id} value={l.name}>{l.name}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label>Invoice No.</label>
+            <label>Vendor Inv No.</label>
             <input value={invoiceHeader.invNo} onChange={e => setInvoiceHeader({...invoiceHeader, invNo: e.target.value})} />
           </div>
           <div className="form-group">
