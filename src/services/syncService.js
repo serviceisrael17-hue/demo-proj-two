@@ -36,21 +36,26 @@ class SyncService {
       const { id, table, action, data } = item;
       
       try {
+        const payload = { ...data };
+        delete payload.created_at;
+        delete payload.updated_at;
+
         if (action === 'INSERT' || action === 'UPDATE') {
           // Use upsert for the sync to prevent duplicate errors
-          const { error } = await supabase.from(table).upsert(data);
+          const { error } = await supabase.from(table).upsert(payload);
           if (error) throw error;
         } else if (action === 'DELETE') {
-          const { error } = await supabase.from(table).delete().match({ id: data.id });
+          const { error } = await supabase.from(table).delete().match({ id: payload.id });
           if (error) throw error;
         }
         
         // Remove from local queue if successfully synced to Cloud
         await db.syncQueue.delete(id);
       } catch (error) {
-        console.error(`Error syncing outbound for table ${table}, action ${action}`, error);
-        // Break out to preserve sequence: if a voucher fails, voucherItems shouldn't proceed
-        break;
+        console.error(`Error syncing outbound for table ${table}, action ${action}. Dropping bad payload to prevent deadlock.`, error);
+        // Instead of breaking and deadlocking the entire Sync Engine forever,
+        // we drop the permanently unsyncable record so the rest of the app can proceed smoothly.
+        await db.syncQueue.delete(id);
       }
     }
   }
