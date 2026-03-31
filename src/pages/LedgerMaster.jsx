@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
-import { supabase } from '../db/supabaseClient';
+import { useLocalCollection } from '../hooks/useLocalCollection';
 
 export default function LedgerMaster() {
-  const ledgers = useSupabaseCollection('ledgers');
+  const { data: ledgers, add: addLedger, remove: deleteLedger } = useLocalCollection('ledgers');
   
   const [formData, setFormData] = useState({
     name: '', group: 'Sundry Debtors', opening_balance: 0
@@ -12,16 +11,16 @@ export default function LedgerMaster() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name) return;
-    await supabase.from('ledgers').insert([{
+    await addLedger({
       name: formData.name,
       group: formData.group,
       opening_balance: Number(formData.opening_balance)
-    }]);
+    });
     setFormData({ name: '', group: 'Sundry Debtors', opening_balance: 0 });
   };
 
   const handleDelete = async (id) => {
-    await supabase.from('ledgers').delete().match({ id });
+    await deleteLedger(id);
   };
 
   return (

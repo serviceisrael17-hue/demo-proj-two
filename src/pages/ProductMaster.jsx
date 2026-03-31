@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
-import { supabase } from '../db/supabaseClient';
+import { useLocalCollection } from '../hooks/useLocalCollection';
 
 export default function ProductMaster() {
-  const products = useSupabaseCollection('products');
-  const uoms = useSupabaseCollection('uoms');
+  const { data: products, add: addProduct, remove: deleteProduct } = useLocalCollection('products');
+  const { data: uoms } = useLocalCollection('uoms');
   
   const [formData, setFormData] = useState({
     code: '', name: '', uom: 'KG', rate: 0, cgst: 0, sgst: 0, igst: 0, discount: 0
@@ -12,19 +11,19 @@ export default function ProductMaster() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await supabase.from('products').insert([{
+    await addProduct({
       ...formData,
       rate: Number(formData.rate),
       cgst: Number(formData.cgst),
       sgst: Number(formData.sgst),
       igst: Number(formData.igst),
       discount: Number(formData.discount)
-    }]);
+    });
     setFormData({ code: '', name: '', uom: 'KG', rate: 0, cgst: 0, sgst: 0, igst: 0, discount: 0 });
   };
 
   const handleDelete = async (id) => {
-    await supabase.from('products').delete().match({ id });
+    await deleteProduct(id);
   };
 
   return (

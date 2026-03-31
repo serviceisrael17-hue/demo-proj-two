@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
-import { supabase } from '../db/supabaseClient';
+import { useLocalCollection } from '../hooks/useLocalCollection';
 
 export default function PurchaseInvoice() {
-  const productsList = useSupabaseCollection('products');
-  const ledgersList = useSupabaseCollection('ledgers');
+  const { data: productsList } = useLocalCollection('products');
+  const { data: ledgersList } = useLocalCollection('ledgers');
+  const { add: addVoucher } = useLocalCollection('vouchers');
+  const { add: addVoucherItem } = useLocalCollection('voucherItems');
   
   const [invoiceHeader, setInvoiceHeader] = useState({
     partyName: 'CASH A/C',
@@ -99,34 +100,30 @@ export default function PurchaseInvoice() {
     try {
       if(totals.total === 0) return alert('Cannot save empty invoice');
       
-      const { data: voucher, error: vError } = await supabase.from('vouchers').insert([{
-        type: 'purchase', // keeping lowercase consistent
+      const vId = await addVoucher({
+        type: 'purchase',
         voucher_no: invoiceHeader.invNo === 'AUTO' ? `PUR-${Date.now()}` : invoiceHeader.invNo,
         date: invoiceHeader.invDate,
         party_name: invoiceHeader.partyName,
         grand_total: grandTotal
-      }]).select().single();
-
-      if (vError) throw vError;
-      const vId = voucher.id;
+      });
 
       const lineItemsToSave = calculatedItems.filter(i => i.Object).map(i => ({
         voucher_id: vId,
         product_id: i.Object.id,
-        qty: i.qty,
-        rate: i.rate,
-        discount_pct: i.discount,
-        discount_amt: i.discountAmt,
-        basic_amt: i.basicAmt, // taxable amt
-        cgst_amt: i.cgstAmt,
-        sgst_amt: i.sgstAmt,
-        igst_amt: i.igstAmt,
-        total_amt: i.totalAmount
+        qty: Number(i.qty),
+        rate: Number(i.rate),
+        discount_pct: Number(i.discount),
+        discount_amt: Number(i.discountAmt),
+        basic_amt: Number(i.basicAmt),
+        cgst_amt: Number(i.cgstAmt),
+        sgst_amt: Number(i.sgstAmt),
+        igst_amt: Number(i.igstAmt),
+        total_amt: Number(i.totalAmount)
       }));
 
-      if(lineItemsToSave.length > 0) {
-        const { error: itemsError } = await supabase.from('voucherItems').insert(lineItemsToSave);
-        if (itemsError) throw itemsError;
+      for (const item of lineItemsToSave) {
+        await addVoucherItem(item);
       }
       
       alert(`Purchase Invoice saved successfully with ID: ${vId}`);

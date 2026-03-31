@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../db/supabaseClient';
+import db from '../db/localDb';
 
 export default function VoucherDetailsModal({ voucher, onClose }) {
   const [items, setItems] = useState([]);
@@ -13,17 +13,10 @@ export default function VoucherDetailsModal({ voucher, onClose }) {
       
       try {
         // Fetch items associated with the voucher
-        const { data: voucherItems, error: itemsError } = await supabase
-          .from('voucherItems')
-          .select('*')
-          .eq('voucher_id', voucher.id);
-
-        if (itemsError) throw itemsError;
+        const voucherItems = await db.voucherItems.where('voucher_id').equals(voucher.id).toArray();
 
         // Fetch products lightly to map names
-        const { data: productsData, error: prodError } = await supabase.from('products').select('id, name');
-        
-        if (prodError) throw prodError;
+        const productsData = await db.products.toArray();
 
         const prodMap = {};
         if (productsData) {

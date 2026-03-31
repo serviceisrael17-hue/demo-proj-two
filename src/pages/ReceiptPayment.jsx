@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
-import { supabase } from '../db/supabaseClient';
+import { useLocalCollection } from '../hooks/useLocalCollection';
 
 export default function ReceiptPayment() {
-  const ledgers = useSupabaseCollection('ledgers');
-  const vouchers = useSupabaseCollection('receiptPayments');
+  const { data: ledgers } = useLocalCollection('ledgers');
+  const { data: vouchers, add: addReceiptPayment, remove: deleteReceiptPayment } = useLocalCollection('receiptPayments');
   
   const [formData, setFormData] = useState({
     type: 'Receipt',
@@ -22,14 +21,14 @@ export default function ReceiptPayment() {
       return;
     }
     
-    await supabase.from('receiptPayments').insert([{
+    await addReceiptPayment({
       type: formData.type.toLowerCase(), // Store as lowercase logic for consistency
       voucher_no: formData.voucher_no === 'AUTO' ? `VCH-${Date.now()}` : formData.voucher_no,
       date: formData.date,
       ledger_id: Number(formData.ledger_id),
       amount: Number(formData.amount),
       remarks: formData.remarks
-    }]);
+    });
     
     setFormData({
       ...formData,
@@ -43,7 +42,7 @@ export default function ReceiptPayment() {
 
   const handleDelete = async (id) => {
     if (window.confirm("Delete this entry?")) {
-      await supabase.from('receiptPayments').delete().match({ id });
+      await deleteReceiptPayment(id);
     }
   };
 

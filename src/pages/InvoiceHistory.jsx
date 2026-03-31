@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
-import { supabase } from '../db/supabaseClient';
+import { useLocalCollection } from '../hooks/useLocalCollection';
 import VoucherDetailsModal from '../components/VoucherDetailsModal';
 
 export default function InvoiceHistory() {
   const [filterType, setFilterType] = useState('All');
   const [selectedVoucher, setSelectedVoucher] = useState(null);
   
-  const allVouchers = useSupabaseCollection('vouchers');
+  const { data: allVouchers, remove: deleteVoucher } = useLocalCollection('vouchers');
   const vouchers = allVouchers.filter(v => {
     if (filterType === 'All') return true;
     return v.type === filterType.toLowerCase();
@@ -15,8 +14,8 @@ export default function InvoiceHistory() {
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this voucher?')) {
-      await supabase.from('vouchers').delete().match({ id });
-      // Database has CASCADE DELETE for items, no need to manually delete them
+      await deleteVoucher(id);
+      // Sync engine pushes this delete to Supabase queue
     }
   };
 

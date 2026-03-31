@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
-import { supabase } from '../db/supabaseClient';
+import { useLocalCollection } from '../hooks/useLocalCollection';
 
 export default function UomMaster() {
-  const uoms = useSupabaseCollection('uoms');
+  const { data: uoms, add: addUom, remove: deleteUom } = useLocalCollection('uoms');
   
   const [formData, setFormData] = useState({ name: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name) return;
-    await supabase.from('uoms').insert([{ name: formData.name }]);
+    await addUom({ name: formData.name });
     setFormData({ name: '' });
   };
 
   const handleDelete = async (id) => {
-    await supabase.from('uoms').delete().match({ id });
+    await deleteUom(id);
   };
 
   return (

@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import Settings from './pages/Settings';
 import { Settings as SettingsIcon } from 'lucide-react';
 import SyncStatus from './components/SyncStatus';
+import { syncService } from './services/syncService';
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -24,6 +25,11 @@ export default function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  // Trigger sync on initial load
+  useEffect(() => {
+    syncService.performSync();
   }, []);
 
   return (

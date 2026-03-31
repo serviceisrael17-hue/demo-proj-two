@@ -1,79 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../db/supabaseClient';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, ReceiptText, AlertCircle, Users, FileText, Package, LayoutGrid, Download } from 'lucide-react';
 import VoucherDetailsModal from '../components/VoucherDetailsModal';
+import { useLocalCollection } from '../hooks/useLocalCollection';
+import { syncService } from '../services/syncService';
 
 export default function Home() {
   const [selectedVoucher, setSelectedVoucher] = useState(null);
-  const [metrics, setMetrics] = useState({
-    totalRevenue: 0,
-    amountReceived: 0,
-    outstandingDues: 0,
-    totalClients: 0
-  });
   
-  const [recentInvoices, setRecentInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: vouchers } = useLocalCollection('vouchers');
+  const { data: receiptPayments } = useLocalCollection('receiptPayments');
 
-  useEffect(() => {
-    fetchDashboardData();
+  const stats = useMemo(() => {
+    const sales = vouchers.filter(v => v.type === 'sales');
+    const receipts = receiptPayments.filter(r => r.type === 'receipt');
 
-    // Subscribe to real-time changes
-    const vouchersSubscription = supabase.channel('vouchers-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers' }, () => fetchDashboardData())
-      .subscribe();
-      
-    const receiptsSubscription = supabase.channel('receipts-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'receiptPayments' }, () => fetchDashboardData())
-      .subscribe();
+    const totalRev = sales.reduce((sum, s) => sum + (Number(s.grand_total) || 0), 0);
+    const clients = new Set(sales.filter(s => s.party_name).map(s => s.party_name));
+    const received = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
-    return () => {
-      supabase.removeChannel(vouchersSubscription);
-      supabase.removeChannel(receiptsSubscription);
-    };
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      const { data: sales, error: salesError } = await supabase
-        .from('vouchers')
-        .select('grand_total, party_name')
-        .eq('type', 'sales');
-      
-      if (salesError) throw salesError;
-
-      const totalRev = sales.reduce((sum, s) => sum + (Number(s.grand_total) || 0), 0);
-      const clients = new Set(sales.filter(s => s.party_name).map(s => s.party_name));
-      
-      const { data: receipts, error: rectError } = await supabase
-        .from('receiptPayments')
-        .select('amount')
-        .eq('type', 'receipt');
-        
-      if (rectError) throw rectError;
-
-      const received = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-
-      const { data: recent } = await supabase
-        .from('vouchers')
-        .select('*')
-        .eq('type', 'sales')
-        .order('id', { ascending: false })
-        .limit(5);
-
-      setMetrics({
+    return {
+      metrics: {
         totalRevenue: totalRev,
         amountReceived: received,
         outstandingDues: Math.max(0, totalRev - received),
         totalClients: clients.size
-      });
-      setRecentInvoices(recent || []);
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
+      },
+      recentInvoices: sales.slice().reverse().slice(0, 5)
+    };
+  }, [vouchers, receiptPayments]);
+
+  const { metrics, recentInvoices } = stats;
+
+  const handleSyncData = () => {
+    syncService.performSync();
   };
 
   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
@@ -91,7 +51,7 @@ export default function Home() {
           </div>
         </div>
         <div className="dashboard-header-actions">
-          <button className="dash-btn btn-outline" onClick={fetchDashboardData}>
+          <button className="dash-btn btn-outline" onClick={handleSyncData}>
             <TrendingUp size={16} /> Sync Data
           </button>
           <button className="dash-btn btn-primary-light">
@@ -144,9 +104,7 @@ export default function Home() {
             <div className="ledger-badge">{recentInvoices.length} Bills</div>
           </div>
           <div className="ledger-card-body">
-            {loading ? (
-              <p className="empty-state">Loading recent manual transactions...</p>
-            ) : recentInvoices.length === 0 ? (
+            {recentInvoices.length === 0 ? (
               <p className="empty-state">No recent sales found.</p>
             ) : (
               <div className="invoice-list">
