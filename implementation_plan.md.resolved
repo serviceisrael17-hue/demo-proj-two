@@ -1,0 +1,184 @@
+# Easy Trade ERP — Agent Handoff & Context Save
+
+> **Saved on:** 2026-03-31 | Conversation: `1726385e-6204-487c-a067-3cc25dfc051f`
+
+---
+
+## Project Overview
+
+**Easy Trade** is a React + Vite ERP/billing web app deployed on Vercel at:
+👉 **https://demo-easy-trade.vercel.app**
+
+- **Repo / Local Path:** `d:\EASYTRADE`
+- **Backend:** Supabase PostgreSQL (cloud)
+- **Supabase URL:** `https://jskpwjbffldjsnawjcsp.supabase.co`
+- **Supabase Key (publishable):** `sb_publishable_7BHFB14bhgBYQIxmzc7B8g_72c9aWrX`
+- **Deploy:** Vercel (`sawanpar27-1874s-projects`) via `push.bat`
+
+---
+
+## Technology Stack
+
+| Tech | Details |
+|---|---|
+| Framework | React 18 + Vite 5 |
+| Routing | React Router DOM v6 |
+| CSS | Vanilla CSS (`src/index.css`) |
+| Backend | Supabase JS v2 |
+| Icons | Lucide React |
+| Offline DB | Dexie (installed but not actively used anymore) |
+
+---
+
+## Supabase Tables
+
+| Table | Purpose |
+|---|---|
+| `products` | Product master (code, name, uom, rate, cgst, sgst, igst, discount) |
+| `ledgers` | Ledger/party master (name, group, opening_balance) |
+| `uoms` | Unit of Measure master (name) |
+| `vouchers` | Sales & Purchase invoice headers |
+| `voucherItems` | Line items for vouchers (FK: voucher_id, product_id) |
+| `receiptPayments` | Receipt and Payment vouchers |
+| `company` | Company/business profile settings |
+| `users` | User management (name, email, role) |
+
+---
+
+## Page Routes
+
+| Route | Component | File |
+|---|---|---|
+| `/` | Home (Dashboard) | `src/pages/Home.jsx` |
+| `/products` | Product Master | `src/pages/ProductMaster.jsx` |
+| `/ledgers` | Ledger Master | `src/pages/LedgerMaster.jsx` |
+| `/uom` | UOM Master | `src/pages/UomMaster.jsx` |
+| `/sales` | Sales Invoice | `src/pages/SalesInvoice.jsx` |
+| `/purchase` | Purchase Invoice | `src/pages/PurchaseInvoice.jsx` |
+| `/receipt-payment` | Receipt & Payment | `src/pages/ReceiptPayment.jsx` |
+| `/history` | Invoice History | `src/pages/InvoiceHistory.jsx` |
+| `/settings` | Company Settings | `src/pages/Settings.jsx` |
+
+---
+
+## 🐛 KNOWN BUG — **404 NOT_FOUND on `/products` page (Vercel)**
+
+> [!CAUTION]
+> **This is the main bug to fix.** Screenshot was shown in chat.
+> 
+> **Error:** `404: NOT_FOUND | Code: NOT_FOUND | ID: bom1::mlqk4-1774924927437-760c91f0412e`
+> 
+> **URL:** `demo-easy-trade.vercel.app/products`
+>
+> **Root Cause:** Vercel deploys React SPA (Single Page App) but doesn't know to serve `index.html` for all routes. When user **refreshes** any deep route like `/products`, `/sales`, etc., Vercel tries to find a real file called `products` — which doesn't exist — and returns 404.
+>
+> **Fix Required:** Add a `vercel.json` at the project root (`d:\EASYTRADE\vercel.json`) with a rewrite rule to redirect all routes to `index.html`.
+
+### Fix: Create `d:\EASYTRADE\vercel.json`
+
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+This is the **standard Vercel SPA fix** — one file, completely solves all refresh 404s.
+
+After creating this file, run `push.bat` to redeploy to Vercel.
+
+---
+
+## 📋 FULL TESTING TASK LIST (After Fixing the 404)
+
+The user wants **1 random entry tested on every page**. Here's the test plan:
+
+### 1. UOM Master (`/uom`)
+- Add a UOM: `LTR`
+- Verify it appears in the table
+
+### 2. Product Master (`/products`)
+- Add product: Code=`1234`, Name=`Test Oil`, UOM=`LTR`, Rate=`500`, CGST=`9`, SGST=`9`, IGST=`0`, Disc=`0`
+- Verify it appears in the table
+
+### 3. Ledger Master (`/ledgers`)
+- Add ledger: Name=`Test Customer`, Group=`Sundry Debtors`, Opening Balance=`0`
+- Verify it appears
+
+### 4. Sales Invoice (`/sales`)
+- Select Party: `Test Customer`
+- Add row: select `Test Oil`, Qty=`2`
+- Save invoice → confirm ID shown in alert
+- Verify in History
+
+### 5. Purchase Invoice (`/purchase`)
+- Add a purchase entry with `Test Oil`, Qty=`5`
+- Save → confirm ID
+
+### 6. Receipt & Payment (`/receipt-payment`)
+- Record Receipt: Ledger=`Test Customer`, Amount=`1000`, Remarks=`Test Receipt`
+- Verify entry in table
+
+### 7. Invoice History (`/history`)
+- Filter by Sales → verify the sales invoice is there
+- Filter by Purchase → verify the purchase invoice
+
+### 8. Home Dashboard (`/`)
+- Check KPI cards update (Total Revenue, Amount Received, Outstanding Dues, Clients)
+- Click Sync Data button
+
+### 9. Settings (`/settings`)
+- Save company profile: Name=`My Test Business`, GST=`29ABCDE1234F1Z5`
+- Add a user: Name=`Admin User`, Email=`admin@test.com`, Role=`Admin`
+- Delete the test user
+
+---
+
+## Key Source Files Summary
+
+### `src/db/supabaseClient.js`
+```js
+import { createClient } from '@supabase/supabase-js';
+const supabaseUrl = 'https://jskpwjbffldjsnawjcsp.supabase.co';
+const supabaseKey = 'sb_publishable_7BHFB14bhgBYQIxmzc7B8g_72c9aWrX';
+export const supabase = createClient(supabaseUrl, supabaseKey);
+```
+
+### `src/hooks/useSupabaseCollection.js`
+- Custom hook: fetches data from any Supabase table and subscribes to real-time changes
+- Returns array of records sorted by `id` ascending
+- Real-time: handles INSERT, UPDATE, DELETE events
+
+### `src/App.jsx`
+- Uses `BrowserRouter` + React Router v6
+- Nav links: Home, Sales, Purchase, Receipt/Pymt, History | Products, Ledgers, UOM, Settings
+- Online/Offline indicator (green/red dot) next to brand name
+
+---
+
+## Files to Check/Create
+
+| Action | File | Reason |
+|---|---|---|
+| **CREATE** | `d:\EASYTRADE\vercel.json` | Fix 404 on page refresh |
+| Run | `push.bat` | Redeploy to Vercel after vercel.json |
+
+---
+
+## `push.bat` Contents
+```bat
+git add .
+git commit -m "fix: add vercel.json for SPA routing"
+git push
+```
+
+---
+
+> [!IMPORTANT]
+> After the new agent session starts, the very first step should be:
+> 1. Create `vercel.json` at project root
+> 2. Run `push.bat` (or `git add . && git commit -m "fix vercel SPA routing" && git push`)
+> 3. Wait for Vercel to redeploy (~1-2 min)
+> 4. Test all pages as listed above
+

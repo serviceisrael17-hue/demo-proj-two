@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
 import { supabase } from '../db/supabaseClient';
+import VoucherDetailsModal from '../components/VoucherDetailsModal';
 
 export default function InvoiceHistory() {
   const [filterType, setFilterType] = useState('All');
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
   
   const allVouchers = useSupabaseCollection('vouchers');
   const vouchers = allVouchers.filter(v => {
@@ -65,7 +67,8 @@ export default function InvoiceHistory() {
                 <td>{v.date}</td>
                 <td>{v.party_name}</td>
                 <td className="text-right" style={{fontWeight: 'bold'}}>{Number(v.grand_total).toFixed(2)}</td>
-                <td style={{textAlign: 'center'}}>
+                <td style={{textAlign: 'center', whiteSpace: 'nowrap'}}>
+                  <button className="btn btn-secondary" onClick={() => setSelectedVoucher(v)} style={{padding: '4px 8px', fontSize: '11px', marginRight: '4px'}}>View</button>
                   <button className="btn btn-danger" onClick={() => handleDelete(v.id)} style={{padding: '4px 8px', fontSize: '11px'}}>Delete</button>
                 </td>
               </tr>
@@ -76,6 +79,13 @@ export default function InvoiceHistory() {
           </tbody>
         </table>
       </div>
+      
+      {selectedVoucher && (
+        <VoucherDetailsModal 
+          voucher={selectedVoucher} 
+          onClose={() => setSelectedVoucher(null)} 
+        />
+      )}
     </div>
   );
 }

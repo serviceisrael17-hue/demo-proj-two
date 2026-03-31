@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../db/supabaseClient';
 import { Link } from 'react-router-dom';
 import { TrendingUp, ReceiptText, AlertCircle, Users, FileText, Package, LayoutGrid, Download } from 'lucide-react';
+import VoucherDetailsModal from '../components/VoucherDetailsModal';
 
 export default function Home() {
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [metrics, setMetrics] = useState({
     totalRevenue: 0,
     amountReceived: 0,
@@ -159,7 +161,7 @@ export default function Home() {
                     </div>
                     <div className="invoice-total">
                       <p>{formatCurrency(inv.grand_total)}</p>
-                      <button>View Details</button>
+                      <button onClick={() => setSelectedVoucher(inv)} style={{cursor: 'pointer'}}>View Details</button>
                     </div>
                   </div>
                 ))}
@@ -186,6 +188,13 @@ export default function Home() {
           </Link>
         </div>
       </div>
+      
+      {selectedVoucher && (
+        <VoucherDetailsModal 
+          voucher={selectedVoucher} 
+          onClose={() => setSelectedVoucher(null)} 
+        />
+      )}
     </div>
   );
 }

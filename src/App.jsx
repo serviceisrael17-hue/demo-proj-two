@@ -10,6 +10,7 @@ import ReceiptPayment from './pages/ReceiptPayment';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import { Settings as SettingsIcon } from 'lucide-react';
+import SyncStatus from './components/SyncStatus';
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
+        <SyncStatus />
       </div>
     </BrowserRouter>
   );
