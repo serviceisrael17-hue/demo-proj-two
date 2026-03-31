@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
+import { supabase } from '../db/supabaseClient';
 
 export default function ProductMaster() {
-  const products = useLiveQuery(() => db.products.toArray()) || [];
-  const uoms = useLiveQuery(() => db.uoms.toArray()) || [];
+  const products = useSupabaseCollection('products');
+  const uoms = useSupabaseCollection('uoms');
   
   const [formData, setFormData] = useState({
     code: '', name: '', uom: 'KG', rate: 0, cgst: 0, sgst: 0, igst: 0, discount: 0
@@ -12,19 +12,19 @@ export default function ProductMaster() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await db.products.add({
+    await supabase.from('products').insert([{
       ...formData,
       rate: Number(formData.rate),
       cgst: Number(formData.cgst),
       sgst: Number(formData.sgst),
       igst: Number(formData.igst),
       discount: Number(formData.discount)
-    });
+    }]);
     setFormData({ code: '', name: '', uom: 'KG', rate: 0, cgst: 0, sgst: 0, igst: 0, discount: 0 });
   };
 
   const handleDelete = async (id) => {
-    await db.products.delete(id);
+    await supabase.from('products').delete().match({ id });
   };
 
   return (
@@ -102,11 +102,11 @@ export default function ProductMaster() {
                 <td>{p.code}</td>
                 <td>{p.name}</td>
                 <td>{p.uom}</td>
-                <td className="text-right">{p.rate.toFixed(2)}</td>
-                <td className="text-right">{p.cgst.toFixed(2)}</td>
-                <td className="text-right">{p.sgst.toFixed(2)}</td>
-                <td className="text-right">{(p.igst || 0).toFixed(2)}</td>
-                <td className="text-right">{(p.discount || 0).toFixed(2)}</td>
+                <td className="text-right">{Number(p.rate).toFixed(2)}</td>
+                <td className="text-right">{Number(p.cgst).toFixed(2)}</td>
+                <td className="text-right">{Number(p.sgst).toFixed(2)}</td>
+                <td className="text-right">{Number(p.igst || 0).toFixed(2)}</td>
+                <td className="text-right">{Number(p.discount || 0).toFixed(2)}</td>
                 <td>
                   <button className="btn btn-danger" onClick={() => handleDelete(p.id)} style={{padding: '4px 8px', fontSize: '11px'}}>Del</button>
                 </td>

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
+import { supabase } from '../db/supabaseClient';
 
 export default function ReceiptPayment() {
-  const ledgers = useLiveQuery(() => db.ledgers.toArray()) || [];
-  const vouchers = useLiveQuery(() => db.receiptPayments.toArray()) || [];
+  const ledgers = useSupabaseCollection('ledgers');
+  const vouchers = useSupabaseCollection('receiptPayments');
   
   const [formData, setFormData] = useState({
     type: 'Receipt',
@@ -22,14 +22,14 @@ export default function ReceiptPayment() {
       return;
     }
     
-    await db.receiptPayments.add({
-      type: formData.type,
+    await supabase.from('receiptPayments').insert([{
+      type: formData.type.toLowerCase(), // Store as lowercase logic for consistency
       voucher_no: formData.voucher_no === 'AUTO' ? `VCH-${Date.now()}` : formData.voucher_no,
       date: formData.date,
       ledger_id: Number(formData.ledger_id),
       amount: Number(formData.amount),
       remarks: formData.remarks
-    });
+    }]);
     
     setFormData({
       ...formData,
@@ -43,7 +43,7 @@ export default function ReceiptPayment() {
 
   const handleDelete = async (id) => {
     if (window.confirm("Delete this entry?")) {
-      await db.receiptPayments.delete(id);
+      await supabase.from('receiptPayments').delete().match({ id });
     }
   };
 
@@ -125,7 +125,7 @@ export default function ReceiptPayment() {
               return (
                 <tr key={v.id}>
                   <td>{v.id}</td>
-                  <td style={{color: v.type === 'Receipt' ? '#2e7d32' : '#c62828', fontWeight: 600}}>{v.type}</td>
+                  <td style={{color: v.type.toLowerCase() === 'receipt' ? '#2e7d32' : '#c62828', fontWeight: 600, textTransform: 'capitalize'}}>{v.type}</td>
                   <td>{v.voucher_no}</td>
                   <td>{v.date}</td>
                   <td>{ledger ? ledger.name : 'Unknown Account'}</td>

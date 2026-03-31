@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
+import { supabase } from '../db/supabaseClient';
 
 export default function UomMaster() {
-  const uoms = useLiveQuery(() => db.uoms.toArray()) || [];
+  const uoms = useSupabaseCollection('uoms');
   
   const [formData, setFormData] = useState({ name: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name) return;
-    await db.uoms.add({ name: formData.name });
+    await supabase.from('uoms').insert([{ name: formData.name }]);
     setFormData({ name: '' });
   };
 
   const handleDelete = async (id) => {
-    await db.uoms.delete(id);
+    await supabase.from('uoms').delete().match({ id });
   };
 
   return (

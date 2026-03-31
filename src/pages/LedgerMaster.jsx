@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
+import { supabase } from '../db/supabaseClient';
 
 export default function LedgerMaster() {
-  const ledgers = useLiveQuery(() => db.ledgers.toArray()) || [];
+  const ledgers = useSupabaseCollection('ledgers');
   
   const [formData, setFormData] = useState({
     name: '', group: 'Sundry Debtors', opening_balance: 0
@@ -12,15 +12,16 @@ export default function LedgerMaster() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name) return;
-    await db.ledgers.add({
-      ...formData,
+    await supabase.from('ledgers').insert([{
+      name: formData.name,
+      group: formData.group,
       opening_balance: Number(formData.opening_balance)
-    });
+    }]);
     setFormData({ name: '', group: 'Sundry Debtors', opening_balance: 0 });
   };
 
   const handleDelete = async (id) => {
-    await db.ledgers.delete(id);
+    await supabase.from('ledgers').delete().match({ id });
   };
 
   return (
@@ -75,7 +76,7 @@ export default function LedgerMaster() {
                 <td>{l.id}</td>
                 <td>{l.name}</td>
                 <td>{l.group}</td>
-                <td className="text-right">{l.opening_balance.toFixed(2)}</td>
+                <td className="text-right">{Number(l.opening_balance).toFixed(2)}</td>
                 <td>
                   <button className="btn btn-danger" onClick={() => handleDelete(l.id)} style={{padding: '4px 8px', fontSize: '11px'}}>Del</button>
                 </td>

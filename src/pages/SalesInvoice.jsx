@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
+import { supabase } from '../db/supabaseClient';
 
 export default function SalesInvoice() {
-  const productsList = useLiveQuery(() => db.products.toArray()) || [];
-  const ledgersList = useLiveQuery(() => db.ledgers.toArray()) || [];
+  const productsList = useSupabaseCollection('products');
+  const ledgersList = useSupabaseCollection('ledgers');
   
   const [invoiceHeader, setInvoiceHeader] = useState({
     partyName: 'CASH A/C',
@@ -99,13 +99,16 @@ export default function SalesInvoice() {
     try {
       if(totals.total === 0) return alert('Cannot save empty invoice');
       
-      const vId = await db.vouchers.add({
-        type: 'Sales',
+      const { data: voucher, error: vError } = await supabase.from('vouchers').insert([{
+        type: 'sales',
         voucher_no: invoiceHeader.invNo === 'AUTO' ? `INV-${Date.now()}` : invoiceHeader.invNo,
         date: invoiceHeader.invDate,
         party_name: invoiceHeader.partyName,
         grand_total: grandTotal
-      });
+      }]).select().single();
+
+      if (vError) throw vError;
+      const vId = voucher.id;
 
       const lineItemsToSave = calculatedItems.filter(i => i.Object).map(i => ({
         voucher_id: vId,
@@ -122,14 +125,15 @@ export default function SalesInvoice() {
       }));
 
       if(lineItemsToSave.length > 0) {
-        await db.voucherItems.bulkAdd(lineItemsToSave);
+        const { error: itemsError } = await supabase.from('voucherItems').insert(lineItemsToSave);
+        if (itemsError) throw itemsError;
       }
       
       alert(`Invoice saved successfully with ID: ${vId}`);
       setItems([{ id: Date.now(), productId: '', qty: 1, discount: 0, igst: 0, Object: null }]);
       setInvoiceHeader({...invoiceHeader, invNo: 'AUTO'});
     } catch(err) {
-      alert("Error saving: " + err);
+      alert("Error saving: " + err.message);
     }
   };
 

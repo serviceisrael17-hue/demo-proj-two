@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useSupabaseCollection } from '../hooks/useSupabaseCollection';
+import { supabase } from '../db/supabaseClient';
 
 export default function InvoiceHistory() {
   const [filterType, setFilterType] = useState('All');
   
-  const vouchers = useLiveQuery(() => {
-    if (filterType === 'All') return db.vouchers.toArray();
-    return db.vouchers.where('type').equals(filterType).toArray();
-  }, [filterType]) || [];
+  const allVouchers = useSupabaseCollection('vouchers');
+  const vouchers = allVouchers.filter(v => {
+    if (filterType === 'All') return true;
+    return v.type === filterType.toLowerCase();
+  });
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this voucher?')) {
-      await db.vouchers.delete(id);
-      // Delete associated items
-      await db.voucherItems.where('voucher_id').equals(id).delete();
+      await supabase.from('vouchers').delete().match({ id });
+      // Database has CASCADE DELETE for items, no need to manually delete them
     }
   };
 
@@ -50,8 +50,9 @@ export default function InvoiceHistory() {
                 <td>{v.id}</td>
                 <td>
                   <span style={{
-                    backgroundColor: v.type === 'Sales' ? '#e6f3e6' : '#f3e6e6',
-                    color: v.type === 'Sales' ? '#2e7d32' : '#c62828',
+                    textTransform: 'capitalize',
+                    backgroundColor: String(v.type).toLowerCase() === 'sales' ? '#e6f3e6' : '#f3e6e6',
+                    color: String(v.type).toLowerCase() === 'sales' ? '#2e7d32' : '#c62828',
                     padding: '2px 6px',
                     borderRadius: '4px',
                     fontWeight: 500,
@@ -63,7 +64,7 @@ export default function InvoiceHistory() {
                 <td>{v.voucher_no}</td>
                 <td>{v.date}</td>
                 <td>{v.party_name}</td>
-                <td className="text-right" style={{fontWeight: 'bold'}}>{v.grand_total.toFixed(2)}</td>
+                <td className="text-right" style={{fontWeight: 'bold'}}>{Number(v.grand_total).toFixed(2)}</td>
                 <td style={{textAlign: 'center'}}>
                   <button className="btn btn-danger" onClick={() => handleDelete(v.id)} style={{padding: '4px 8px', fontSize: '11px'}}>Delete</button>
                 </td>
