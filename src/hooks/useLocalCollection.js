@@ -7,13 +7,9 @@ export function useLocalCollection(tableName) {
   const data = useLiveQuery(() => db[tableName].toArray(), [tableName]) || [];
 
   const add = async (record) => {
-    // Provide timestamp for Last Write Wins strategy
-    const timestamp = new Date().toISOString();
-    const recordWithTime = { ...record, updated_at: timestamp, created_at: timestamp };
-
     // 1. Write to actual local table
-    const id = await db[tableName].add(recordWithTime);
-    const finalRecord = { ...recordWithTime, id }; // Combine the ID automatically assigned
+    const id = await db[tableName].add(record);
+    const finalRecord = { ...record, id }; // Combine the ID automatically assigned
 
     // 2. Add to syncQueue
     await db.syncQueue.add({
@@ -31,10 +27,7 @@ export function useLocalCollection(tableName) {
   };
 
   const update = async (id, changes) => {
-    const timestamp = new Date().toISOString();
-    const changesWithTime = { ...changes, updated_at: timestamp };
-
-    await db[tableName].update(id, changesWithTime);
+    await db[tableName].update(id, changes);
     
     // Fetch full merged record because Supabase upsert typically requires the whole row
     const updatedRecord = await db[tableName].get(id);
