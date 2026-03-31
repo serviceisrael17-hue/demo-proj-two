@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import db from '../db/localDb';
+import { db } from '../db/localDb';
 
 export default function VoucherDetailsModal({ voucher, onClose }) {
   const [items, setItems] = useState([]);
