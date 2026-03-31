@@ -4,6 +4,8 @@ import { useLocalCollection } from '../hooks/useLocalCollection';
 export default function LedgerMaster() {
   const { data: ledgers, add: addLedger, remove: deleteLedger } = useLocalCollection('ledgers');
   
+  const totalBalance = ledgers.reduce((sum, l) => sum + (Number(l.opening_balance) || 0), 0);
+
   const [formData, setFormData] = useState({
     name: '', group: 'Sundry Debtors', opening_balance: 0
   });
@@ -85,6 +87,13 @@ export default function LedgerMaster() {
               <tr><td colSpan="5" style={{textAlign: 'center', padding: '16px'}}>No Ledgers found. Add above.</td></tr>
             )}
           </tbody>
+          <tfoot style={{backgroundColor: '#EAEAEA', fontWeight: 'bold'}}>
+            <tr>
+              <td colSpan="3" className="text-right">Total Balance:</td>
+              <td className="text-right" style={{fontSize: '15px'}}>{totalBalance.toFixed(2)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

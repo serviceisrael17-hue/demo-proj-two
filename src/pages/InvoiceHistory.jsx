@@ -12,6 +12,8 @@ export default function InvoiceHistory() {
     return v.type === filterType.toLowerCase();
   });
 
+  const totalAmount = vouchers.reduce((sum, v) => sum + (Number(v.grand_total) || 0), 0);
+
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this voucher?')) {
       await deleteVoucher(id);
@@ -76,6 +78,13 @@ export default function InvoiceHistory() {
               <tr><td colSpan="7" style={{textAlign: 'center', padding: '16px'}}>No records found.</td></tr>
             )}
           </tbody>
+          <tfoot style={{backgroundColor: '#EAEAEA', fontWeight: 'bold'}}>
+            <tr>
+              <td colSpan="5" className="text-right">Total:</td>
+              <td className="text-right" style={{fontSize: '15px'}}>{totalAmount.toFixed(2)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       

@@ -4,6 +4,9 @@ import { useLocalCollection } from '../hooks/useLocalCollection';
 export default function ReceiptPayment() {
   const { data: ledgers } = useLocalCollection('ledgers');
   const { data: vouchers, add: addReceiptPayment, remove: deleteReceiptPayment } = useLocalCollection('receiptPayments');
+
+  const totalReceipts = vouchers.filter(v => v.type.toLowerCase() === 'receipt').reduce((sum, v) => sum + (Number(v.amount) || 0), 0);
+  const totalPayments = vouchers.filter(v => v.type.toLowerCase() === 'payment').reduce((sum, v) => sum + (Number(v.amount) || 0), 0);
   
   const [formData, setFormData] = useState({
     type: 'Receipt',
@@ -140,6 +143,17 @@ export default function ReceiptPayment() {
               <tr><td colSpan="8" style={{textAlign: 'center', padding: '16px'}}>No receipts or payments recorded yet.</td></tr>
             )}
           </tbody>
+          <tfoot style={{backgroundColor: '#EAEAEA', fontWeight: 'bold'}}>
+            <tr>
+              <td colSpan="6" className="text-right">
+                <span style={{color:'#2e7d32', marginRight: '16px'}}>Receipts: {totalReceipts.toFixed(2)}</span>
+                <span style={{color:'#c62828', marginRight: '8px'}}>Payments: {totalPayments.toFixed(2)}</span>
+                | Net: 
+              </td>
+              <td className="text-right" style={{fontSize: '15px'}}>{(totalReceipts - totalPayments).toFixed(2)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
