@@ -57,7 +57,7 @@ class SyncService {
 
   async syncInbound() {
     // Ensure voucherItems are synced after vouchers to maintain relational integrity
-    const tables = ['company', 'products', 'ledgers', 'receiptPayments', 'vouchers', 'voucherItems'];
+    const tables = ['company', 'uoms', 'products', 'ledgers', 'receiptPayments', 'vouchers', 'voucherItems'];
 
     for (const table of tables) {
       const lastSyncKey = `lastSync_${table}`;
