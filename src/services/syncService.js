@@ -25,7 +25,11 @@ class SyncService {
     this.isSyncing = true;
     try {
       // 1. Outbound Sync (Local changes pushed to Supabase)
-      await this.syncOutbound();
+      const networkOk = await this.syncOutbound();
+      
+      // If outbound detected a network drop, abort inbound to prevent console error spam
+      if (networkOk === false) return;
+
       // 2. Inbound Sync (Supabase changes pulled to Local)
       await this.syncInbound();
     } catch (error) {
@@ -66,15 +70,15 @@ class SyncService {
         const isNetworkError = !error.code || error.message === 'Failed to fetch' || error.message?.includes('fetch');
 
         if (isNetworkError) {
-           console.warn(`Network unreachable. Pausing outbound sync. Safely keeping record in queue to retry.`, error);
-           break; // Stop the loop but KEEP the item in queue to retry later
+           console.warn(`Network unreachable. Pausing outbound sync. Safely keeping record in queue to retry.`);
+           return false; // Network failed: STOP the loop, keep in queue, abort syncInbound
         } else {
-           console.error(`Fatal API error (${error.code}) for table ${table}. Dropping bad payload to prevent eternal deadlock.`, error);
-           // We drop permanently broken payloads so the rest of the valid app data can proceed smoothly.
+           console.error(`Fatal API error (${error.code}) for table ${table}. Dropping bad payload to prevent eternal deadlock.`);
            await db.syncQueue.delete(id);
         }
       }
     }
+    return true;
   }
 
   async syncInbound() {
@@ -92,9 +96,14 @@ class SyncService {
            await db[table].bulkPut(allRecords);
         }
       } catch (error) {
+        if (error.message === 'Failed to fetch' || error?.message?.includes('fetch')) {
+           console.warn('Network explicitly dropped during inbound fetch. Pausing inward sync.');
+           return false; // Stop the inbound loop immediately to prevent 7 concurrent console errors
+        }
         console.error(`Error processing inbound sync for table ${table}`, error);
       }
     }
+    return true;
   }
 }
 
