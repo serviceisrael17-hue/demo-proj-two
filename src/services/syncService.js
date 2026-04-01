@@ -5,10 +5,19 @@ class SyncService {
   constructor() {
     this.isSyncing = false;
     
-    // Recursive Sync: Automatically triggers when navigator.onLine becomes true.
+    // 1. Recursive Sync: Automatically triggers when navigator.onLine becomes true.
+    // We use a 2000ms delay to give the OS time to establish DNS/TLS after the Wi-Fi connects.
     window.addEventListener('online', () => {
-      this.performSync();
+      setTimeout(() => this.performSync(), 2000);
     });
+
+    // 2. Fallback Periodic Sync: If an offline item was paused due to a Network Error, 
+    // this ensures it automatically retries and clears the queue within 15 seconds.
+    setInterval(() => {
+      if (navigator.onLine && !this.isSyncing) {
+        this.performSync();
+      }
+    }, 15000);
   }
 
   async performSync() {
@@ -52,10 +61,18 @@ class SyncService {
         // Remove from local queue if successfully synced to Cloud
         await db.syncQueue.delete(id);
       } catch (error) {
-        console.error(`Error syncing outbound for table ${table}, action ${action}. Dropping bad payload to prevent deadlock.`, error);
-        // Instead of breaking and deadlocking the entire Sync Engine forever,
-        // we drop the permanently unsyncable record so the rest of the app can proceed smoothly.
-        await db.syncQueue.delete(id);
+        // If Supabase throws a schema/database error (like PGRST204), it will have a 'code' property.
+        // If it's a network error ("Failed to fetch"), it usually lacks a PostgREST code.
+        const isNetworkError = !error.code || error.message === 'Failed to fetch' || error.message?.includes('fetch');
+
+        if (isNetworkError) {
+           console.warn(`Network unreachable. Pausing outbound sync. Safely keeping record in queue to retry.`, error);
+           break; // Stop the loop but KEEP the item in queue to retry later
+        } else {
+           console.error(`Fatal API error (${error.code}) for table ${table}. Dropping bad payload to prevent eternal deadlock.`, error);
+           // We drop permanently broken payloads so the rest of the valid app data can proceed smoothly.
+           await db.syncQueue.delete(id);
+        }
       }
     }
   }
